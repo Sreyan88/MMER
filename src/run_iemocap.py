@@ -22,7 +22,6 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer, BertConfig
 
-from model import NeoMeanMaxExcite_v2
 from utils import create_processor, prepare_example, text_preprocessing
 from mmi_module import MMI_Model, CAI_SOTA, UNI_BASELINE
 

@@ -1,0 +1,24 @@
+semantic:
+  embedding_path: '/dataset/IEMOCAP/paper_data/Glove/glove300d_full.npy'
+  vocabulary_path: '/dataset/IEMOCAP/paper_data/Glove/glove300d_w2i.pkl'
+  embedding_dim: 300
+  embedding_size: 3430
+  hidden_dim: 256
+  excite: True
+
+acoustic:
+  feature_name: 'fbank'
+  embedding_dim: 40
+  hidden_dim: 256
+  audio_length: 3000
+  excite: True
+
+fusion:
+  hidden_dim: 256
+
+classifier:
+  class_num: 4
+
+loss:
+  name: 'BCE'
+  ratio: 0.2
