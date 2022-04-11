@@ -153,7 +153,7 @@ def run(args, config, train_data, valid_data, session):
 
     ############################ PARAMETER SETTING ##########################
     num_workers = 1
-    batch_size = int(args.batch_size // args.accum_grad)
+    batch_size = args.batch_size
     epochs = args.epochs
     learning_rate = args.learning_rate #5e-5 for cai et.al re-iplementation #0.00001 or 1e-5 for all other
     accum_iter = args.accum_grad
@@ -173,7 +173,7 @@ def run(args, config, train_data, valid_data, session):
     # valid_loader = train_loader
     # train_loader = []
     ########################### CREATE MODEL #################################
-    config_mmi = BertConfig('config.json')
+    config_mmi = BertConfig('configs/config.json')
 
     if args.run == "baseline":
         model = MMI_Model(config_mmi,len(audio_processor.tokenizer),4,alpha = args.alpha)
@@ -305,8 +305,8 @@ if __name__ == '__main__':
     parser.add_argument("--run", type=str, required=True, help="type of model you want to run, options are cai_sota, unimodal_baseline and mmer")
     parser.add_argument("--learning_rate", type=float, default=0.00001, help="learning rate for the specific run")
     parser.add_argument("--alpha", type=float, default=0.1, help="value of alpha for CTC weight, only applicable when running cai_sota and mmer")
-    parser.add_argument("--batch_size", type=int, default=8, help="batch size")
-    parser.add_argument("--accum_grad", type=int, default=2, help="gradient accumulation steps")
+    parser.add_argument("--batch_size", type=int, default=2, help="batch size")
+    parser.add_argument("--accum_grad", type=int, default=4, help="gradient accumulation steps")
 
     args = parser.parse_args()
 
