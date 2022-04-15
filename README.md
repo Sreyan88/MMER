@@ -11,12 +11,12 @@ sh best_run.sh path_to_audio_files path_to_roberta_embeddings path_to_iemocap_cs
 ```
 To run other variants, please change the arguments accordingly. Some main arguments are listed below:    
 ```
---run : you have 3 model variants you can run, cai_sota (implementation of [this](https://www.isca-speech.org/archive/pdfs/interspeech_2021/cai21b_interspeech.pdf) paper), unimodal_baseline (wav2vec-2.0 baseline) and mmer (our paper).  
+--run : you have 3 model variants you can run, cai_sota (implementation of the paper (https://www.isca-speech.org/archive/pdfs/interspeech_2021/cai21b_interspeech.pdf), unimodal_baseline (wav2vec-2.0 baseline) and mmer (our paper). 
 
 --alpha : weight for CTC loss in the final loss  
 ```
 
-## Checkpoints  
+### Checkpoints  
 Model | Link   
 --- | ---  
 cai_sota | [Link](https://drive.google.com/file/d/1E2-hNS3mi6yduUMTScsXUAc8BVp_zqoS/view?usp=sharing)  
@@ -26,7 +26,7 @@ mmer (alpha=0.1) | [Link](https://drive.google.com/file/d/1Tn14LgHQuK4TUM5iXwwhi
 mmer (alpha=0.01) | [Link](https://drive.google.com/file/d/1AycVAC_-gG0u1x7FSwVaEKJtunzk5n91/view?usp=sharing)   
 mmer (alpha=0.001) | [Link](https://drive.google.com/file/d/1XGOefZQLGgSJgo4eE0NdTU-tQxmQC0OX/view?usp=sharing)  
 
-Note: The tar.gz files also have logs in them. The models and logs in the folder are the format {validation_session}_model.pt and {validation_session}_stats.txt.
+Note: The tar.gz files also have logs in them. The models and logs in the folder are in the format{validation_session}_model.pt and {validation_session}_stats.txt.
 
 
 If you find this work useful, please do cite our paper:  
