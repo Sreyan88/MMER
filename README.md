@@ -3,16 +3,7 @@
 This repository contains code for the paper [MMER: Multimodal Multi-task learning for Emotion Recognition in Spoken Utterances](https://arxiv.org/abs/2203.16794)  
 
 
-Tu run our model, first follow:
-```
-cd data  
-
-# Download roberta embeddings using gdown with this [link](https://drive.google.com/file/d/1xCpOWpwuw8eLyjm1fxcyJF8U_qtQDSCc/view?usp=sharing)  
-
-cd audio
-
-# Download and process IEMOCAP data to extract audio files (more details in data_prep)
-```
+Tu run our model, first download roberta embeddings using gdown with this [link](https://drive.google.com/file/d/1xCpOWpwuw8eLyjm1fxcyJF8U_qtQDSCc/view?usp=sharing) in the data folder. Then prepare and extract IEMOCAP audio files in data/audio using instructions in data_prep folder.
 
 To run our sota implementation of MMER in the paper, please run:  
 ```
@@ -26,14 +17,14 @@ To run other variants, please change the arguments accordingly. Some main argume
 ```
 
 ## Checkpoints  
-Model | Link | Description |  
---- | --- | --- | 
+Model | Link   
+--- | ---  
 cai_sota | [Link](https://drive.google.com/file/d/1E2-hNS3mi6yduUMTScsXUAc8BVp_zqoS/view?usp=sharing)  
 unimodal_baseline | [Link]() 
-mmer (0 alpha) | [Link](https://drive.google.com/file/d/1xeG-15VzdL3UM2GFMEJLFleEbrqs22cn/view?usp=sharing)    
-mmer (0.1 alpha) | [Link](https://drive.google.com/file/d/1Tn14LgHQuK4TUM5iXwwhiC2G_HkJ4Fyr/view?usp=sharing)  
-mmer (0.01 alpha) | [Link](https://drive.google.com/file/d/1AycVAC_-gG0u1x7FSwVaEKJtunzk5n91/view?usp=sharing)   
-mmer (0.001 alpha) | [Link](https://drive.google.com/file/d/1XGOefZQLGgSJgo4eE0NdTU-tQxmQC0OX/view?usp=sharing)   
+mmer (alpha=0) | [Link](https://drive.google.com/file/d/1xeG-15VzdL3UM2GFMEJLFleEbrqs22cn/view?usp=sharing)    
+mmer (alpha=0.1) | [Link](https://drive.google.com/file/d/1Tn14LgHQuK4TUM5iXwwhiC2G_HkJ4Fyr/view?usp=sharing)  
+mmer (alpha=0.01) | [Link](https://drive.google.com/file/d/1AycVAC_-gG0u1x7FSwVaEKJtunzk5n91/view?usp=sharing)   
+mmer (alpha=0.001) | [Link](https://drive.google.com/file/d/1XGOefZQLGgSJgo4eE0NdTU-tQxmQC0OX/view?usp=sharing)  
 
 Note: The tar.gz files also have logs in them. The models and logs in the folder are the format {validation_session}_model.pt and {validation_session}_stats.txt.
 
