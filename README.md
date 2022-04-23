@@ -7,7 +7,10 @@ Tu run our model, first download roberta embeddings using gdown with this [link]
 
 To run our sota implementation of MMER in the paper, please run:  
 ```
-sh best_run.sh path_to_audio_files path_to_roberta_embeddings path_to_iemocap_csv path_to_save_directory
+sh best_run.sh path_to_audio_files \  
+path_to_roberta_embeddings \  
+path_to_iemocap_csv \  
+path_to_save_directory
 ```
 To run other variants, please change the arguments accordingly. Some main arguments are listed below:    
 ```
