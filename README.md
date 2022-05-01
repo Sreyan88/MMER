@@ -2,6 +2,9 @@
 
 This repository contains code for the paper [MMER: Multimodal Multi-task learning for Emotion Recognition in Spoken Utterances](https://arxiv.org/abs/2203.16794)  
 
+### Proposed MMER Architecture:  
+
+![Proposed Architecture :](./assets/MMERImage.jpg)  
 
 Tu run our model, first download roberta embeddings using gdown with this [link](https://drive.google.com/file/d/1xCpOWpwuw8eLyjm1fxcyJF8U_qtQDSCc/view?usp=sharing) in the data folder. Then prepare and extract IEMOCAP audio files in data/audio using instructions in data_prep folder.
 
