@@ -15,15 +15,25 @@ Tu run our model, please download and prepare data as suggested below:
 
 To run MMER, please execute:  
 ```
-sh run.sh path_to_audio_files
+sh run.sh
 ```
 
-You can change the hyper-parameters in `run.sh` according to your needs. Some useful ones are listed below:    
+You can optionally change the hyper-parameters in `run.sh`. Some useful ones are listed below:    
 ```
- --alpha : weight for CTC loss in the final loss  
+--lambda : weight for auxiliary losses  
+--epochs : number of epochs you want your model to train for (defaults to 100)  
+--save_path: path to your saved checkpoints and logs (defaults to output/)  
+--batch_size: batch size for training (defaults to 2)
+--accum_iter: number of gradient accumulation steps (scale accordingly with batch_size)
+
 ```
 
-If you find this work useful, please do cite our paper:  
+For infernce, please execute:  
+```
+sh infer.sh
+```
+
+If you find this work useful, please cite our paper:  
 ```
 @inproceedings{ghosh22b_interspeech,
   author={Sreyan Ghosh and Utkarsh Tyagi and S Ramaneswaran and Harshvardhan Srivastava and Dinesh Manocha},

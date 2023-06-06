@@ -504,7 +504,6 @@ if __name__ == "__main__":
     parser.add_argument("--data_path_audio_augmented", type=str, required=True, help="path to augmented audio wav files")
     parser.add_argument("--data_path_roberta_augmented", type=str, required=True, help="path to augmented roberta embeddings for text")
     parser.add_argument("--learning_rate", type=float, default=5e-5, help="learning rate for the specific run")
-    parser.add_argument("--alpha", type=float, default=0.1, help="value of alpha for CTC weight, only applicable when running cai_sota and mmer")
     parser.add_argument("--batch_size", type=int, default=2, help="batch size")
     parser.add_argument("--accum_grad", type=int, default=4, help="gradient accumulation steps")
     parser.add_argument("--lambda", type=float, default=0.1, help="lambda to weight the auxiliary losses")
