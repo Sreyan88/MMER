@@ -1,25 +1,26 @@
 # MMER
 
-This repository contains code for the InterSpeech 2023 paper [MMER: Multimodal Multi-task Learning for Speech Emotion Recognition](https://arxiv.org/abs/2203.16794)  
+This repository contains code for our InterSpeech 2023 paper - [MMER: Multimodal Multi-task Learning for Speech Emotion Recognition](https://arxiv.org/abs/2203.16794)  
 
 ### Proposed MMER Architecture:  
 
-![Proposed Architecture :](./assets/MMER.pdf)  
+![Proposed Architecture :](./assets/mmer-1.png)  
 
-Tu run our model, first download roberta embeddings using gdown with this [link](https://drive.google.com/file/d/1xCpOWpwuw8eLyjm1fxcyJF8U_qtQDSCc/view?usp=sharing) in the data folder. Then prepare and extract IEMOCAP audio files in data/audio using instructions in data_prep folder.
+Tu run our model, please download and prepare data as suggested below:  
+* download the [roberta embeddings](https://drive.google.com/file/d/1xy1Ht2-qb0LwCz50o-y--Nln00d5TOQc/view?usp=sharing) and unzip them in the **data/roberta** folder.  
+* download the [roberta embeddings for augmentations](https://drive.google.com/file/d/1KxILCQr7od7pfwdfpJp3VVwZHf0iQczm/view?usp=sharing) and unzip them in the `data/roberta_aug` folder.  
+* download the [iemocap dataset](https://sail.usc.edu/iemocap/iemocap_release.htm) and put the tar file in the `data` folder. Then prepare and extract IEMOCAP audio files in `data/iemocap` using instructions in data_prep folder.  
+* download [iemocap augmented files](https://drive.google.com/file/d/1xy1Ht2-qb0LwCz50o-y--Nln00d5TOQc/view?usp=sharing) and put them in the `data/iemocap_aug` folder.  
 
-To run our sota implementation of MMER in the paper, please run:  
-```
-sh best_run.sh path_to_audio_files \  
-path_to_roberta_embeddings \  
-path_to_iemocap_csv \  
-path_to_save_directory
-```
-To run other variants, please change the arguments accordingly. Some main arguments are listed below:    
-```
---run : you have 3 model variants you can run, cai_sota (implementation of the paper (https://www.isca-speech.org/archive/pdfs/interspeech_2021/cai21b_interspeech.pdf), unimodal_baseline (wav2vec-2.0 baseline) and mmer (our paper). 
 
---alpha : weight for CTC loss in the final loss  
+To run MMER, please execute:  
+```
+sh run.sh path_to_audio_files
+```
+
+You can change the hyper-parameters in `run.sh` according to your needs. Some useful ones are listed below:    
+```
+ --alpha : weight for CTC loss in the final loss  
 ```
 
 If you find this work useful, please do cite our paper:  
