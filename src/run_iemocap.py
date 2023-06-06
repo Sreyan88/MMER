@@ -346,12 +346,12 @@ def run(args, config, train_data, valid_data, session):
     stats_file = open(os.path.join(final_save_path, session) + '_' + 'stats.txt', 'a', buffering=1)
 
     ############################## PREPARE DATASET ##########################
-    train_dataset = IEMOCAPDataset(config, train_data, args.data_path_augmented_audio)
+    train_dataset = IEMOCAPDataset(config, train_data, args.data_path_audio_augmented)
     train_loader = torch.utils.data.DataLoader(
         dataset = train_dataset, batch_size = batch_size, collate_fn=collate,
         shuffle = True, num_workers = num_workers
     )
-    valid_dataset = IEMOCAPDataset(config, valid_data, args.data_path_augmented_audio)
+    valid_dataset = IEMOCAPDataset(config, valid_data, args.data_path_audio_augmented)
     valid_loader = torch.utils.data.DataLoader(
         dataset = valid_dataset, batch_size = batch_size, collate_fn=collate,
         shuffle = False, num_workers = num_workers
@@ -501,9 +501,8 @@ if __name__ == "__main__":
     parser.add_argument("--save_path", type=str, default="./", help="report or ckpt save path")
     parser.add_argument("--data_path_audio", type=str, required=True, help="path to raw audio wav files")
     parser.add_argument("--data_path_roberta", type=str, required=True, help="path to roberta embeddings for text")
-    parser.add_argument("--data_path_augmented_audio", type=str, required=True, help="path to augmented audio wav files")
-    parser.add_argument("--data_path_augmented_roberta", type=str, required=True, help="path to augmented roberta embeddings for text")
-    parser.add_argument("--run", type=str, required=True, help="type of model you want to run, options are cai_sota, unimodal_baseline and mmer")
+    parser.add_argument("--data_path_audio_augmented", type=str, required=True, help="path to augmented audio wav files")
+    parser.add_argument("--data_path_roberta_augmented", type=str, required=True, help="path to augmented roberta embeddings for text")
     parser.add_argument("--learning_rate", type=float, default=5e-5, help="learning rate for the specific run")
     parser.add_argument("--alpha", type=float, default=0.1, help="value of alpha for CTC weight, only applicable when running cai_sota and mmer")
     parser.add_argument("--batch_size", type=int, default=2, help="batch size")
