@@ -6,15 +6,15 @@ This repository contains code for our InterSpeech 2023 paper - [MMER: Multimodal
 
 ![Proposed Architecture :](./assets/mmer-1.png)  
 
+### Training:  
+
 Tu run our model, please download and prepare data according to instructions below:  
 * download the [roberta embeddings](https://drive.google.com/file/d/1xy1Ht2-qb0LwCz50o-y--Nln00d5TOQc/view?usp=sharing) and unzip them in the `data/roberta` folder.  
 * download the [roberta embeddings for augmentations](https://drive.google.com/file/d/1KxILCQr7od7pfwdfpJp3VVwZHf0iQczm/view?usp=sharing) and unzip them in the `data/roberta_aug` folder.  
 * download the [iemocap dataset](https://sail.usc.edu/iemocap/iemocap_release.htm) and put the tar file in the `data` folder. Then prepare and extract IEMOCAP audio files in `data/iemocap` using instructions in `data_prep` folder.  
 * download [iemocap augmented files](https://drive.google.com/file/d/1ldlT8ShpBFmHyYcj5V_ttZ596hF5q_3_/view?usp=sharing) and put them in the `data/iemocap_aug` folder.  
 
-### Training:  
-
-To run MMER, please execute:  
+To train MMER, please execute:  
 ```
 sh run.sh
 ```
