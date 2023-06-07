@@ -1,22 +1,36 @@
+import argparse
+import os
+parser = argparse.ArgumentParser(allow_abbrev=False)
+parser.add_argument('--gpu','-g', default=0, type=int, help='gpu number')
+parser.add_argument('--batch_size','-bs', type=int, default=16, help='batch size')
+parser.add_argument('--ga','-ga', type=int, default=1, help='gradient accumulation')
+args = parser.parse_args()
+
+unqiue_path = f'./model_store_{args.batch_size}_{args.gpu}_{args.ga}_all'
+
+if not os.path.exists(unqiue_path):
+    os.makedirs(unqiue_path, exist_ok=True)
+
+
 from cgitb import text
 import re
 import os
 import time
 import sys
 import json
+from tkinter import NONE
+# from sqlalchemy import true
 import yaml
 import pickle
 import argparse
+import numpy as np
+from tqdm import tqdm
 import librosa
+import pandas as pd
+from functools import reduce
 import random
 import copy
 import math
-import warnings
-import numpy as np
-import pandas as pd
-from tqdm import tqdm
-from tkinter import NONE
-from functools import reduce
 
 import torch
 import torchaudio
@@ -24,13 +38,23 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
+from transformers import AutoTokenizer, BertConfig, AutoConfig
+from transformers import  Wav2Vec2Model, RobertaModel
 from transformers.models.roberta.modeling_roberta import RobertaEncoder
-from transformers import AutoTokenizer, BertConfig, AutoConfig, Wav2Vec2Model, RobertaModel
-
 from infonce_loss import InfoNCE, SupConLoss
-from utils import create_processor, prepare_example, text_preprocessing
+from mmi_module_ner_slt_fbank_5 import MMI_Model
 
+
+# loss =  InfoNCE()
+
+os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
+
+from utils import create_processor, prepare_example, text_preprocessing
+# from mmi_module import MMI_Model, CAI_SOTA, UNI_BASELINE
+
+import warnings
 warnings.filterwarnings("ignore")
+
 
 tokenizer = AutoTokenizer.from_pretrained("roberta-base")
 audio_processor = create_processor("facebook/wav2vec2-base")
@@ -40,6 +64,8 @@ vocabulary_text_cleaner = re.compile(  # remove characters not in vocabulary
         f"[^\s{re.escape(vocabulary_chars_str)}]",  # allow space in addition to chars in vocabulary
         flags=re.IGNORECASE if audio_processor.tokenizer.do_lower_case else 0,
     )
+
+
 
 def evaluate_metrics(pred_label, true_label):
     pred_label = np.array(pred_label)
@@ -63,15 +89,15 @@ def label2idx(label):
 
 
 class IEMOCAPDataset(object):
-    def __init__(self, config, data_list, augmented_audio_path):
+    def __init__(self, config, data_list):
         self.data_list = data_list
         # self.unit_length = int(8 * 16000)
         self.audio_length = config['acoustic']['audio_length']
         self.feature_name = config['acoustic']['feature_name']
         self.feature_dim = config['acoustic']['embedding_dim']
 
-        self.augmented_audio_path = augmented_audio_path
-        self.augmented_audio = os.listdir(self.augmented_audio_path)
+        self.augmented_audio_path = "/fs/nexus-projects/audio-visual_dereverberation/clmlf/out/"
+        self.augmented_audio = os.listdir("/fs/nexus-projects/audio-visual_dereverberation/clmlf/out")
 
         self.augmented_audio_dictionary = {}
 
@@ -91,11 +117,8 @@ class IEMOCAPDataset(object):
 
         #------------- extract the audio features -------------#
         wave,sr = librosa.core.load(audio_path + ".wav", sr=None)
-
-        # precautionary measure to fit in a 24GB gpu, feel free to comment the next 2 lines
         if len(wave)>210000:
             wave = wave[:210000]
-
         audio_length = len(wave)
 
         # figure out augmnted audio
@@ -106,6 +129,8 @@ class IEMOCAPDataset(object):
         if len(augmented_wav)>210000:
             augmented_wav = augmented_wav[:210000]
         augmented_audio_length = len(augmented_wav)
+        # if audio_length > self.unit_length:
+        #     wave = wave[0:self.unit_length]
 
         #------------- extract the text contexts -------------#
         tokenized_word = np.load(bert_path + ".npy")
@@ -283,6 +308,9 @@ class FuseModel(nn.Module):
         cl_self_loss = torch.gather(l_pos_neg_self, dim=0, index=cl_self_labels)
         cl_self_loss = - cl_self_loss.sum() / cl_self_labels.size(0)
 
+        # cl_self_loss = self.cl_loss(text_audio_ftrs, text_audio_ftrs)
+        # cl_self_loss = self.cl_loss(text_audio_ftrs, text_audio_ftrs) #contrastive loss
+
         if ((augmented_text_output is not None) and (augmented_audio_inputs is not None) and (mode == "train")):
 
             augmented_emotion_logits, augmented_logits, augmented_loss_cls, augmented_loss_ctc = self.forward_encoder(augmented_text_output, augmented_attention_mask, augmented_audio_inputs, augmented_audio_length, ctc_labels, emotion_labels, augmentation=True)
@@ -308,6 +336,12 @@ class FuseModel(nn.Module):
 
         loss = None
         if labels is not None:
+
+            # # retrieve loss input_lengths from attention_mask
+            # attention_mask = (
+            #     attention_mask if attention_mask is not None else torch.ones_like(input_values, dtype=torch.long)
+            # )
+            # input_lengths = self._get_feat_extract_output_lengths(attention_mask.sum(-1))
 
             # assuming that padded tokens are filled with -100
             # when not being attended to
@@ -337,24 +371,26 @@ class FuseModel(nn.Module):
         return loss
 
 
-def run(args, config, train_data, valid_data, session):
+
+
+def run(config, train_data, valid_data, session):
 
     ############################ PARAMETER SETTING ##########################
-    num_workers = args.num_workers
+    num_workers = 4
     batch_size = args.batch_size
-    epochs = args.epochs
-    learning_rate = args.lr
-    accum_iter = args.accum_grad
-    final_save_path = args.save_path
-    stats_file = open(os.path.join(final_save_path, session) + '_' + 'stats.txt', 'a', buffering=1)
+    epochs = 100
+    learning_rate = 5e-5 #5e-5 for cai et.al re-iplementation #0.00001 or 1e-5 for all other
+    accum_iter = args.ga
+    final_save_path = unqiue_path
+    # stats_file = open(os.path.join(final_save_path, session) + '_' + 'stats.txt', 'a', buffering=1)
 
     ############################## PREPARE DATASET ##########################
-    train_dataset = IEMOCAPDataset(config, train_data, args.data_path_audio_augmented)
+    train_dataset = IEMOCAPDataset(config, train_data)
     train_loader = torch.utils.data.DataLoader(
         dataset = train_dataset, batch_size = batch_size, collate_fn=collate,
         shuffle = True, num_workers = num_workers
     )
-    valid_dataset = IEMOCAPDataset(config, valid_data, args.data_path_audio_augmented)
+    valid_dataset = IEMOCAPDataset(config, valid_data)
     valid_loader = torch.utils.data.DataLoader(
         dataset = valid_dataset, batch_size = batch_size, collate_fn=collate,
         shuffle = False, num_workers = num_workers
@@ -366,7 +402,9 @@ def run(args, config, train_data, valid_data, session):
     print("Create model")
     print("*"*40)
 
-    config_mmi = BertConfig(args.bert_config)
+    config_mmi = BertConfig('config.json')
+    # roberta_model = RobertaModel.from_pretrained("roberta-base")
+    # text_config = copy.deepcopy(roberta_model.config)
 
     model = FuseModel(config_mmi)
 
@@ -401,50 +439,55 @@ def run(args, config, train_data, valid_data, session):
     count, best_metric, save_metric, best_epoch = 0, -np.inf, None, 0
 
     for epoch in range(epochs):
-        epoch_train_loss = []
-        epoch_train_cls_loss = []
-        epoch_train_ctc_loss = []
-        epoch_train_cl_loss = []
-        epoch_train_cl_self_loss = []
-        model.train()
-        start_time = time.time()
-        batch_idx = 0
-        time.sleep(2) # avoid the deadlock during the switch between the different dataloaders
-        progress = tqdm(train_loader, desc='Epoch {:0>3d}'.format(epoch))
-        for bert_input, audio_input, label_input, bert_augmented_input, audio_augmented_input in progress:
-            attention_mask, text_length, bert_output =  bert_input[1].cuda(),bert_input[2].cuda(),bert_input[3].cuda()
-            acoustic_input, acoustic_length = audio_input[0]['input_values'].cuda(),audio_input[1].cuda()
-            ctc_labels, emotion_labels = label_input[0].cuda(),label_input[1].cuda()
-            augmented_bert_output, augmented_attention_mask = bert_augmented_input[0].cuda(),bert_augmented_input[1].cuda()
-            augmented_acoustic_input, augmented_acoustic_length = audio_augmented_input[0]['input_values'].cuda(),audio_augmented_input[1].cuda()
-            target_labels = [_target.cuda() for _target in label_input[2]]
+        # epoch_train_loss = []
+        # epoch_train_cls_loss = []
+        # epoch_train_ctc_loss = []
+        # epoch_train_cl_loss = []
+        # epoch_train_cl_self_loss = []
+        # model.train()
+        # start_time = time.time()
+        # batch_idx = 0
+        # time.sleep(2) # avoid the deadlock during the switch between the different dataloaders
+        # progress = tqdm(train_loader, desc='Epoch {:0>3d}'.format(epoch))
+        # for bert_input, audio_input, label_input, bert_augmented_input, audio_augmented_input in progress:
+        #     # torch.cuda.empty_cache()
+        #     attention_mask, text_length, bert_output =  bert_input[1].cuda(),bert_input[2].cuda(),bert_input[3].cuda()
+        #     acoustic_input, acoustic_length = audio_input[0]['input_values'].cuda(),audio_input[1].cuda()
+        #     ctc_labels, emotion_labels = label_input[0].cuda(),label_input[1].cuda()
+        #     augmented_bert_output, augmented_attention_mask = bert_augmented_input[0].cuda(),bert_augmented_input[1].cuda()
+        #     augmented_acoustic_input, augmented_acoustic_length = audio_augmented_input[0]['input_values'].cuda(),audio_augmented_input[1].cuda()
+        #     target_labels = [_target.cuda() for _target in label_input[2]]
 
-            logits, cl_loss, cl_self_loss, ctc_loss, cls_loss = model(bert_output, attention_mask, acoustic_input, acoustic_length, ctc_labels, emotion_labels, target_labels, augmented_bert_output, augmented_attention_mask, augmented_acoustic_input, augmented_acoustic_length)
+        #     #model.zero_grad()                                input_ids, attention_mask, audio_inputs, ctc_labels, emotion_labels, target_labels, augmented_input_ids, augmented_attention_mask, augmented_audio
+        #     logits, cl_loss, cl_self_loss, ctc_loss, cls_loss = model(bert_output, attention_mask, acoustic_input, acoustic_length, ctc_labels, emotion_labels, target_labels, augmented_bert_output, augmented_attention_mask, augmented_acoustic_input, augmented_acoustic_length)
+        #     # print(l_pos_neg)
+        #     # print(cl_self_loss)
+        #     # print(loss_cls)
+        #     loss = 0.1*cl_loss + 0.1*cl_self_loss + cls_loss + 0.1*ctc_loss
+        #     loss = loss/accum_iter
+        #     loss.backward()
 
-            loss = args.lambda*cl_loss + args.lambda*cl_self_loss + cls_loss + args.lambda*ctc_loss
-            loss = loss/accum_iter
-            loss.backward()
+        #     if ((batch_idx + 1) % accum_iter == 0) or (batch_idx + 1 == len(train_loader)):
+        #         epoch_train_loss.append(loss)
+        #         epoch_train_cl_loss.append(cl_loss)
+        #         epoch_train_cls_loss.append(cls_loss)
+        #         epoch_train_ctc_loss.append(ctc_loss)
+        #         epoch_train_cl_self_loss.append(cl_self_loss)
+        #         optimizer.step()
+        #         optimizer.zero_grad()
 
-            if ((batch_idx + 1) % accum_iter == 0) or (batch_idx + 1 == len(train_loader)):
-                epoch_train_loss.append(loss)
-                epoch_train_cl_loss.append(cl_loss)
-                epoch_train_cls_loss.append(cls_loss)
-                epoch_train_ctc_loss.append(ctc_loss)
-                epoch_train_cl_self_loss.append(cl_self_loss)
-                optimizer.step()
-                optimizer.zero_grad()
+        #     batch_idx += 1
+        #     count += 1
+        #     acc_train_loss = torch.mean(torch.tensor(epoch_train_loss)).cpu().detach().numpy()
+        #     cls_loss = torch.mean(torch.tensor(epoch_train_cls_loss)).cpu().detach().numpy()
+        #     ctc_loss = torch.mean(torch.tensor(epoch_train_ctc_loss)).cpu().detach().numpy()
+        #     cl_self_loss = torch.mean(torch.tensor(epoch_train_cl_self_loss)).cpu().detach().numpy()
+        #     cl_loss = torch.mean(torch.tensor(epoch_train_cl_loss)).cpu().detach().numpy()
 
-            batch_idx += 1
-            count += 1
-            acc_train_loss = torch.mean(torch.tensor(epoch_train_loss)).cpu().detach().numpy()
-            cls_loss = torch.mean(torch.tensor(epoch_train_cls_loss)).cpu().detach().numpy()
-            ctc_loss = torch.mean(torch.tensor(epoch_train_ctc_loss)).cpu().detach().numpy()
-            cl_self_loss = torch.mean(torch.tensor(epoch_train_cl_self_loss)).cpu().detach().numpy()
-            cl_loss = torch.mean(torch.tensor(epoch_train_cl_loss)).cpu().detach().numpy()
-
-            progress.set_description("Epoch {:0>3d} - Loss {:.4f} - CLS_Loss {:.4f} - CTC_Loss {:.4f} - CL Loss {:.4f}".format(epoch, acc_train_loss, cls_loss, ctc_loss, cl_self_loss))
-
-        del progress
+        #     # cl_self_loss = 0
+        #     progress.set_description("Epoch {:0>3d} - Loss {:.4f} - CLS_Loss {:.4f} - CTC_Loss {:.4f} - CL Loss {:.4f}".format(epoch, acc_train_loss, cls_loss, ctc_loss, cl_self_loss))
+        # del progress
+        model.load_state_dict(torch.load('/fs/nexus-projects/audio-visual_dereverberation/clmlf/SCLMLF/model_store_8_1_2/2_model.pt')['state_dict'])
         model.eval()
         pred_y, true_y = [], []
         with torch.no_grad():
@@ -466,8 +509,11 @@ def run(args, config, train_data, valid_data, session):
                 label_outputs = prediction.cpu().detach().numpy().astype(int)
 
                 pred_y.extend(list(label_outputs))
+            # del valid_loader
 
         key_metric, report_metric = evaluate_metrics(pred_y, true_y)
+        pickle.dump(pred_y, open(os.path.join(final_save_path, 'pred_y_83.pkl'),'wb'))
+        pickle.dump(true_y, open(os.path.join(final_save_path, 'true_y_83.pkl'),'wb'))
 
         epoch_train_loss = torch.mean(torch.tensor(epoch_train_loss)).cpu().detach().numpy()
 
@@ -478,13 +524,35 @@ def run(args, config, train_data, valid_data, session):
             ' - '.join(['{}: {:.3f}'.format(key, value) for key, value in report_metric.items()]),
             epoch_train_loss))
         stats = dict(epoch=epoch, key_accuracy = key_metric, report_accuracy = report_metric)
-        print(json.dumps(stats), file=stats_file)
+        # print(json.dumps(stats), file=stats_file)
 
 
         if key_metric > best_metric:
-            print('Better Metric found on Test, saving checkpoints')
-            torch.save({'state_dict': model.state_dict()}, os.path.join(final_save_path, session) + '_' + "model.pt")
+            # torch.save({'state_dict': model.state_dict()}, os.path.join(final_save_path, session) + '_' + "model.pt")
             best_metric, best_epoch = key_metric, epoch
+            print('Better Metric found on dev, calculate performance on Test')
+            # pred_y, true_y = [], []
+            # with torch.no_grad():
+            #     time.sleep(2) # avoid the deadlock during the switch between the different dataloaders
+            #     for bert_input, audio_input, label_input, bert_augmented_input, audio_augmented_input in valid_loader:
+            #         torch.cuda.empty_cache()
+            #         input_ids, attention_mask, text_length, bert_output =  bert_input[0].cuda(),bert_input[1].cuda(),bert_input[2].cuda(),bert_input[3].cuda()
+            #         acoustic_input, acoustic_length = audio_input[0]['input_values'].cuda(),audio_input[1].cuda()
+            #         ctc_labels, emotion_labels = label_input[0].cuda(),label_input[1].cuda()
+            #         augmented_input_ids, augmented_attention_mask = bert_augmented_input[0].cuda(),bert_augmented_input[1].cuda()
+            #         augmented_acoustic_input, augmented_acoustic_length = audio_augmented_input[0]['input_values'].cuda(),audio_augmented_input[1].cuda()
+            #         target_labels = [_target.cuda() for _target in label_input[2]]
+
+            #         true_y.extend(list(emotion_labels.cpu().numpy()))
+
+            #         logits, cl_loss, cl_self_loss, ctc_loss, cls_loss = model(input_ids, attention_mask, acoustic_input, ctc_labels, emotion_labels, target_labels, augmented_input_ids, augmented_attention_mask, augmented_acoustic_input)
+
+
+            #         prediction = torch.argmax(logits, axis=1)
+            #         label_outputs = prediction.cpu().detach().numpy().astype(int)
+
+            #         pred_y.extend(list(label_outputs))
+
             _, save_metric = evaluate_metrics(pred_y, true_y)
             print("Test Metric: {}".format(
                 ' - '.join(['{}: {:.3f}'.format(key, value) for key, value in save_metric.items()])
@@ -496,31 +564,20 @@ def run(args, config, train_data, valid_data, session):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, required=True, help='configuration file path')
-    parser.add_argument("--bert_config", type=str, required=True, help='configuration file path for BERT')
-    parser.add_argument("--epochs", type=int, default=100, help="training epoches")
-    parser.add_argument("--csv_path", type=str, required=True, help="path of csv")
-    parser.add_argument("--save_path", type=str, default="./", help="report or ckpt save path")
-    parser.add_argument("--data_path_audio", type=str, required=True, help="path to raw audio wav files")
-    parser.add_argument("--data_path_roberta", type=str, required=True, help="path to roberta embeddings for text")
-    parser.add_argument("--data_path_audio_augmented", type=str, required=True, help="path to augmented audio wav files")
-    parser.add_argument("--data_path_roberta_augmented", type=str, required=True, help="path to augmented roberta embeddings for text")
-    parser.add_argument("--learning_rate", type=float, default=5e-5, help="learning rate for the specific run")
-    parser.add_argument("--batch_size", type=int, default=2, help="batch size")
-    parser.add_argument("--accum_grad", type=int, default=4, help="gradient accumulation steps")
-    parser.add_argument("--lambda", type=float, default=0.1, help="lambda to weight the auxiliary losses")
-    parser.add_argument("--num_workers", type=int, default=4, help="number of workers in data loader")
+    config_path = 'conf/config.yaml'
+    csv_path = '/fs/nexus-projects/audio-visual_dereverberation/clmlf/SCLMLF/iemocap.csv'
+    augmented_csv_path = '/fs/nexus-projects/audio-visual_dereverberation/clmlf/SCLMLF/dedup_iemocap_v2.2_final.csv'
+    data_path_audio = '/fs/nexus-projects/audio-visual_dereverberation/clmlf/iemocap_files/'
+    data_path_roberta = '/fs/nexus-projects/audio-visual_dereverberation/clmlf/numpy_roberta/'
+    data_path_roberta_augmented = '/fs/nexus-projects/audio-visual_dereverberation/clmlf/numpy_roberta_augment/'
 
 
-    args = parser.parse_args()
-
-    config = yaml.load(open(args.config, 'r'), Loader=yaml.FullLoader)
+    config = yaml.load(open(config_path, 'r'), Loader=yaml.FullLoader)
     report_result = []
 
-    df_emotion = pd.read_csv(args.csv_path)
+    df_emotion = pd.read_csv(augmented_csv_path)
 
-    for i in range(1,6):
+    for i in range(2,3):
 
         valid_session = "Ses0" + str(i)
         valid_data_csv = df_emotion[df_emotion["FileName"].str.match(valid_session)]
@@ -531,20 +588,20 @@ if __name__ == "__main__":
         valid_data = []
 
         for row in train_data_csv.itertuples():
-            file_name = os.path.join(args.data_path_audio + row.FileName)
-            bert_path = args.data_path_roberta + row.FileName
-            bert_path_augmented = args.data_path_roberta_augmented + row.FileName
+            file_name = os.path.join(data_path_audio + row.FileName)
+            bert_path = data_path_roberta + row.FileName
+            bert_path_augmented = data_path_roberta_augmented + row.FileName
             train_data.append((file_name,bert_path,row.Sentences,row.Label,row.text,row.AugmentedText,bert_path_augmented))
 
         for row in valid_data_csv.itertuples():
-            file_name = os.path.join(args.data_path_audio + row.FileName)
-            bert_path = args.data_path_roberta + row.FileName
-            bert_path_augmented = args.data_path_roberta_augmented + row.FileName
+            file_name = os.path.join(data_path_audio + row.FileName)
+            bert_path = data_path_roberta + row.FileName
+            bert_path_augmented = data_path_roberta_augmented + row.FileName
             valid_data.append((file_name,bert_path,row.Sentences,row.Label,row.text,row.AugmentedText,bert_path_augmented))
 
         report_metric = run(config, train_data, valid_data, str(i))
         report_result.append(report_metric)
 
-        final_save_path = args.save_path
+        final_save_path = unqiue_path
 
-        pickle.dump(report_result, open(os.path.join(final_save_path, 'metric_report.pkl'),'wb'))
+        # pickle.dump(report_result, open(os.path.join(final_save_path, 'metric_report.pkl'),'wb'))

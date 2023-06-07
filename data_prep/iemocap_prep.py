@@ -1,11 +1,11 @@
 import shutil
 import pandas as pd
-
-csv_file = pd.read_csv("../data/emotion_values.csv")
+ 
+csv_file = pd.read_csv("../data/iemocap.csv")
 files = csv_file["FileName"]
 
 root = "./IEMOCAP_full_release/"
-destination = "../data/audio/IEMOCAP/iemocap_files/"
+destination = "../data/iemocap/"
 
 for file in files:
     session = file[4:5]
