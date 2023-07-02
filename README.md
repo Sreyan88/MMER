@@ -31,9 +31,10 @@ You can optionally change the hyper-parameters in `run.sh`. Some useful ones are
 
 We provide 2 checkpoints. [Checkpoint 1](https://drive.google.com/file/d/1d_Kd5cn1l9JqZu5vlLme8fe5-zauMMKt/view?usp=sharing) is trained on Sessions 2-5 while [Checkpoint 2](https://drive.google.com/file/d/13on_5CovjqFR_p9eUZBDbLVMt4X5KZL5/view?usp=sharing) is trained on Sessions 1,3,4 and 5. You can download the checkpoints for inference or use checkpoints trained on your own run.
 
-For infernce, please execute:  
+For inference, please execute:  
 ```
-sh infer.sh /path/to/checkpoint input_type /path/to/input
+bash infer.sh session_index /path/to/config /path/to/iemocap.csv /path/to/audio /path/to/roberta /path/to/checkpoint
+
 ```
 
 If you find this work useful, please cite our paper:  
