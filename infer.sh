@@ -1,10 +1,12 @@
-config='/fs/nexus-projects/audio-visual_dereverberation/clmlf/MMER/configs/iemocap-ours.yaml'
-csv_path='/fs/nexus-projects/audio-visual_dereverberation/clmlf/SCLMLF/iemocap.csv'
-data_path_audio='/fs/nexus-projects/audio-visual_dereverberation/clmlf/iemocap_files/'
-data_path_roberta='/fs/nexus-projects/audio-visual_dereverberation/clmlf/numpy_roberta/'
-checkpoint_path='/fs/nexus-projects/audio-visual_dereverberation/clmlf/SCLMLF/1_model.pt'
+session=$1
+config=$2
+csv_path=$3
+data_path_audio=$4
+data_path_roberta=$5
+checkpoint_path=$6
 
 python src/run_iemocap_infer.py \
+--session $session \
 --data_path_audio $data_path_audio \
 --data_path_roberta $data_path_roberta \
 --csv_path $csv_path \

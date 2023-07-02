@@ -1,6 +1,7 @@
 import argparse
 import os
 parser = argparse.ArgumentParser(allow_abbrev=False)
+parser.add_argument('--session', type=int, help='Session index')
 parser.add_argument('--config_path', type=str, help='Path to config')
 parser.add_argument('--csv_path', type=str, help='Path to csv file')
 parser.add_argument('--data_path_audio', type=str, help='Path to audio data')
@@ -320,26 +321,26 @@ if __name__ == "__main__":
 
     df_emotion = pd.read_csv(csv_path)
 
-    for i in range(1,2):
-
-        valid_session = "Ses0" + str(i)
-        valid_data_csv = df_emotion[df_emotion["FileName"].str.match(valid_session)]
-        train_data_csv = pd.DataFrame(df_emotion, index = list(set(df_emotion.index).difference(set(valid_data_csv.index)))).reset_index(drop= True)
-        valid_data_csv.reset_index(drop= True, inplace= True)
-
-        train_data = []
-        valid_data = []
-
-        for row in train_data_csv.itertuples():
-            file_name = os.path.join(data_path_audio + row.FileName)
-            bert_path = data_path_roberta + row.FileName
-            train_data.append((file_name,bert_path,row.Sentences,row.Label,row.text))
-
-        for row in valid_data_csv.itertuples():
-            file_name = os.path.join(data_path_audio + row.FileName)
-            bert_path = data_path_roberta + row.FileName
-            valid_data.append((file_name,bert_path,row.Sentences,row.Label,row.text))
-            
 
 
-        report_metric = run_infer(config, train_data, valid_data, checkpoint_path, str(i))
+    valid_session = "Ses0" + str(args.session)
+    valid_data_csv = df_emotion[df_emotion["FileName"].str.match(valid_session)]
+    train_data_csv = pd.DataFrame(df_emotion, index = list(set(df_emotion.index).difference(set(valid_data_csv.index)))).reset_index(drop= True)
+    valid_data_csv.reset_index(drop= True, inplace= True)
+
+    train_data = []
+    valid_data = []
+
+    for row in train_data_csv.itertuples():
+        file_name = os.path.join(data_path_audio + row.FileName)
+        bert_path = data_path_roberta + row.FileName
+        train_data.append((file_name,bert_path,row.Sentences,row.Label,row.text))
+
+    for row in valid_data_csv.itertuples():
+        file_name = os.path.join(data_path_audio + row.FileName)
+        bert_path = data_path_roberta + row.FileName
+        valid_data.append((file_name,bert_path,row.Sentences,row.Label,row.text))
+        
+
+
+    report_metric = run_infer(config, train_data, valid_data, checkpoint_path, str(args.session))
