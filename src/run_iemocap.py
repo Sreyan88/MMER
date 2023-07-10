@@ -420,8 +420,7 @@ def run(args, config, train_data, valid_data, session):
             target_labels = [_target.cuda() for _target in label_input[2]]
 
             logits, cl_loss, cl_self_loss, ctc_loss, cls_loss = model(bert_output, attention_mask, acoustic_input, acoustic_length, ctc_labels, emotion_labels, target_labels, augmented_bert_output, augmented_attention_mask, augmented_acoustic_input, augmented_acoustic_length)
-
-            loss = args.lambda*cl_loss + args.lambda*cl_self_loss + cls_loss + args.lambda*ctc_loss
+            loss = (args.lambda_value*cl_loss) + (args.lambda_value*cl_self_loss) + cls_loss + (args.lambda_value*ctc_loss)
             loss = loss/accum_iter
             loss.backward()
 
@@ -509,7 +508,7 @@ if __name__ == "__main__":
     parser.add_argument("--learning_rate", type=float, default=5e-5, help="learning rate for the specific run")
     parser.add_argument("--batch_size", type=int, default=2, help="batch size")
     parser.add_argument("--accum_grad", type=int, default=4, help="gradient accumulation steps")
-    parser.add_argument("--lambda", type=float, default=0.1, help="lambda to weight the auxiliary losses")
+    parser.add_argument("--lambda_value", type=float, default=0.1, help="lambda_value to weight the auxiliary losses")
     parser.add_argument("--num_workers", type=int, default=4, help="number of workers in data loader")
 
 
