@@ -2,9 +2,24 @@
 
 This repository contains code for our InterSpeech 2023 paper - [MMER: Multimodal Multi-task Learning for Speech Emotion Recognition](https://arxiv.org/abs/2203.16794)  
 
+## Table of Contents
+  - [Proposed MMER Architecture](#proposed-mmer-architecture)
+  - [Installation](#installation)
+  - [Training](#training)
+  - [Inference](#inference)
+
 ### Proposed MMER Architecture:  
 
 ![Proposed Architecture :](./assets/mmer-1.png)  
+
+### Installation
+The project require **Python 3.10** and [Poetry](https://python-poetry.org/):
+
+To install the project use the command
+```bash
+poetry install --no-root
+```
+This command will create a virtual environment in `./.venv`.
 
 ### Training:  
 
